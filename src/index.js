@@ -1,33 +1,53 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
+import App from './App';
 import './index.css';
 
-const App = () => {
-  let [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), [setReady]);
+const promptInputCss = '#prompt-input-0';
 
+/*
   const updatePrompt = useCallback(() => {
-    const prompt = document.querySelector('#prompt-input-0');
+    const prompt = document.querySelector(promptInputCss);
     prompt.value = 'test5';
     prompt.dispatchEvent(new Event('input', { bubbles: true }));
   }, []);
+*/
 
-  console.log('loaded')
-  if (!ready)
-    return;
-
-  console.log('injected')
-
-  return <button onClick={updatePrompt}>Test it out</button>
+const getNthParent = (element, num) => {
+  let e = element;
+  for (let i = num; i > 0; i--) {
+    e = e.parentElement;
+  }
+  return e;
 }
 
-const body = document.querySelector('body')
-const app = document.createElement('div')
-app.id = 'smartnai-root'
+const waitForElm = (selector) => {
+  return new Promise(resolve => {
+    if (document.querySelector(selector)) {
+      return resolve(document.querySelector(selector));
+    }
 
-if (body)
-  body.prepend(app);
+    const observer = new MutationObserver(_ => {
+      if (document.querySelector(selector)) {
+        resolve(document.querySelector(selector));
+        observer.disconnect();
+      }
+    });
 
-const container = document.getElementById('smartnai-root');
-const root = ReactDOM.createRoot(container);
-root.render(<App />)
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  });
+}
+
+waitForElm(promptInputCss).then((elm) => {
+  const app = document.createElement('div')
+  app.id = 'smartnai-root'
+
+  getNthParent(elm, 5).prepend(app);
+
+  const container = document.getElementById('smartnai-root');
+  const root = ReactDOM.createRoot(container);
+  root.render(<App />)
+})
