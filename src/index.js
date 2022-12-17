@@ -1,17 +1,33 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+const App = () => {
+  let [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), [setReady]);
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+  const updatePrompt = useCallback(() => {
+    const prompt = document.querySelector('#prompt-input-0');
+    prompt.value = 'test5';
+    prompt.dispatchEvent(new Event('input', { bubbles: true }));
+  }, []);
+
+  console.log('loaded')
+  if (!ready)
+    return;
+
+  console.log('injected')
+
+  return <button onClick={updatePrompt}>Test it out</button>
+}
+
+const body = document.querySelector('body')
+const app = document.createElement('div')
+app.id = 'smartnai-root'
+
+if (body)
+  body.prepend(app);
+
+const container = document.getElementById('smartnai-root');
+const root = ReactDOM.createRoot(container);
+root.render(<App />)
