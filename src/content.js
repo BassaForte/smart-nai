@@ -3,17 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-console.log('content.js');
-
-const promptInputCss = '#prompt-input-0';
-
-/*
-  const updatePrompt = useCallback(() => {
-    const prompt = document.querySelector(promptInputCss);
-    prompt.value = 'test5';
-    prompt.dispatchEvent(new Event('input', { bubbles: true }));
-  }, []);
-*/
+export const promptInputCss = '#prompt-input-0';
 
 const getNthParent = (element, num) => {
   let e = element;
