@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-export const promptInputCss = '#prompt-input-0';
+const promptInputCss = '#prompt-input-0';
 
 const getNthParent = (element, num) => {
   let e = element;

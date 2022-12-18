@@ -1,15 +1,21 @@
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans",
+    "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+.app {
+  margin-top: 10px;
+  border: 1px solid gray;
+  padding: 8px;
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 button {
@@ -20,4 +26,46 @@ button {
 button:hover {
   background: darkgray;
   cursor: pointer;
+}
+
+button.update {
+  background: purple;
+}
+
+button.update:hover {
+  background: darkgray;
+  cursor: pointer;
+}
+
+input {
+  margin: 1px 0;
+  padding: 4px 0;
+}
+
+.inline {
+  display: inline-block;
+}
+
+.inline input {
+  width: 450px;
+}
+
+ul {
+  list-style: none;
+}
+
+.topic {
+  display:inline;
+}
+
+.topic button {
+  border: none;
+}
+
+.topic input[type=checkbox] {
+  width: 16px;
+}
+
+ul.items {
+  display: grid;
 }
