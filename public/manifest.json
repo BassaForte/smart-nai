@@ -5,11 +5,12 @@
   "description": "NovelAI Image Generation prompt and tags organizer.",
   "version": "1.0.0",
   "manifest_version": 2,
-  "homepage_url": "http://google.com/",
+  "homepage_url": "https://github.com/BassaForte/smart-nai",
   "browser_action": {
     "default_popup": "index.html",
     "default_title": "Smart NAI"
   },
+  "content_security_policy": "script-src 'self' 'sha256-GgRxrVOKNdB4LrRsVPDSbzvfdV4UqglmviH9GoBJ5jk='; object-src 'self'",
   "content_scripts": [
     {
       "matches": [
@@ -19,7 +20,7 @@
         "static/css/main.css"
       ],
       "js": [
-        "static/js/main.js"
+        "static/js/content.js"
       ]
     }
   ]
