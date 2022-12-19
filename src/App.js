@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 
 const promptInputCss = '#prompt-input-0';
 
@@ -48,7 +48,7 @@ const useLocalStorage = (key, initialValue) => {
 const isNullOrWhitespace = (str) => str === undefined || str.trim() === '';
 
 const Topic = ({ topic, onChange, children, onDelete }) => {
-  const { name, active, items, open } = topic;
+  const { name, active, open } = topic;
   const change = useCallback((t) => {
     onChange({ ...topic, ...t });
   }, [topic, onChange])
@@ -57,12 +57,8 @@ const Topic = ({ topic, onChange, children, onDelete }) => {
       <input type='checkbox' checked={active} onChange={() =>
         change({ ...topic, active: !active })
       } />
-      <button onClick={() => change({ open: !open })}>{name}</button>
-      {/*<button onClick={() => {
-        items.push({ prompt: '', level: 0 })
-        change({ items: items })
-      }}>+ Item</button>*/}
-      <button onClick={() => onDelete()}>Delete</button>
+      <button onClick={() => change({ open: !open })}>{name} {open ? '-' : '+'}</button>
+      <button onClick={() => onDelete()}>x</button>
       {open && <>
         <input value={name} onChange={(e) => change({ name: e.target.value })} />
         {children}
@@ -134,6 +130,12 @@ const App = () => {
   const updateState = (n) => setState({ ...state, ...n });
 
   const inputRef = React.createRef();
+  const onNewPromptBlur = (topicIndex) => {
+    if (isNullOrWhitespace(newPrompt)) return;
+    topics[topicIndex].items.push({ prompt: newPrompt, level: 0 });
+    updateState({ topics: topics });
+    setNewPrompt('');
+  }
 
   return (
     <>
@@ -141,7 +143,7 @@ const App = () => {
       {active && <div className='app'>
         <input placeholder='Enter base prompt here' value={basePrompt} onChange={(e) => updateState({ basePrompt: e.target.value })} />
         <h3>Topics <button onClick={() => {
-          topics.push({ name: 'New Topic', items: [{ prompt: '', level: 0 }], open: true })
+          topics.push({ name: 'New Topic', items: [], open: true })
           updateState({ topics: topics })
         }}>+</button>
         </h3>
@@ -177,12 +179,7 @@ const App = () => {
                     </li>
                   ))}
                   <li>
-                    <input key={newPrompt} autoFocus ref={inputRef} placeholder={'Start typing...'} value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)} onBlur={() => {
-                      if (isNullOrWhitespace(newPrompt)) return;
-                      topics[ti].items.push({ prompt: newPrompt, level: 0 });
-                      updateState({ topics: topics });
-                      setNewPrompt('');
-                    }} />
+                    <input key={newPrompt} autoFocus ref={inputRef} placeholder={'Start typing...'} value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)} onBlur={() => onNewPromptBlur(ti)} onKeyDown={(e) => { if (e.key === 'Enter') onNewPromptBlur(ti); }} />
                   </li>
                 </ul>
               </Topic>
