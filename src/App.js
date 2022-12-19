@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 
 const promptInputCss = '#prompt-input-0';
+const undesiredInputCss = 'textarea';
 
 const initalState = {
   basePrompt: '',
@@ -8,12 +9,8 @@ const initalState = {
     {
       name: 'New Topic',
       active: true,
-      items: [
-        {
-          prompt: '',
-          level: 0
-        }
-      ]
+      items: [],
+      undesired: []
     }
   ],
 }
@@ -60,7 +57,10 @@ const Topic = ({ topic, onChange, children, onDelete }) => {
       <button onClick={() => change({ open: !open })}>{name} {open ? '-' : '+'}</button>
       <button onClick={() => onDelete()}>x</button>
       {open && <>
-        <input value={name} onChange={(e) => change({ name: e.target.value })} />
+        <div className='inline'>
+          <>Name: </>
+          <input value={name} onChange={(e) => change({ name: e.target.value })} />
+        </div>
         {children}
       </>
       }
@@ -68,12 +68,13 @@ const Topic = ({ topic, onChange, children, onDelete }) => {
   )
 }
 
-const Item = ({ item, onChange, onDelete }) => {
-  const change = useCallback((i) => {
-    onChange({ ...item, ...i });
-  }, [item, onChange])
+const Item = ({ item, onChange, onDelete, allowNegativeLevel }) => {
   const { prompt, level } = item;
   const space = ' ';
+  const change = useCallback((i) => {
+    if (!allowNegativeLevel && i.level < 0) return;
+    onChange({ ...item, ...i });
+  }, [item, onChange])
   return (
     <div className='inline'>
       <button onClick={() => onDelete()}>x </button>
@@ -93,7 +94,8 @@ const wrap = (str, num, startChar, endChar) => {
 
 const compilePrompt = (basePrompt, topics) => {
   const cleanedBase = (basePrompt ? basePrompt.trim().trimEnd(',') + ', ' : '');
-  const items = [];
+  const promptItems = [];
+  const undesiredItems = [];
   topics.filter(x => x.active).forEach(topic => {
     topic.items.forEach(item => {
       let newPrompt = (item.prompt ?? '').trim().trimEnd(',');
@@ -102,25 +104,48 @@ const compilePrompt = (basePrompt, topics) => {
       else if (item.level < 0)
         newPrompt = wrap(newPrompt, Math.abs(item.level), '[', ']');
 
-      items.push(newPrompt);
-    })
+      promptItems.push(newPrompt);
+    });
+    topic.undesired.forEach(und => {
+      let newUnd = (und.prompt ?? '').trim().trimEnd(',');
+      if (und.level > 0)
+        newUnd = wrap(newUnd, und.level, '(', ')');
+
+      undesiredItems.push(newUnd);
+    });
   });
-  return cleanedBase + items.join(', ');
+  return { promptText: cleanedBase + promptItems.join(', '), undesiredText: undesiredItems.join(', ') };
 }
 
 const App = () => {
-  const [loadedState, setStoredState] = useLocalStorage('appState', initalState);
+  const [loadedState, setStoredState] = useLocalStorage('smartnai-state', initalState);
   const [active, setActive] = useState(true);
   const [state, setState] = useState(loadedState);
   const { basePrompt, topics } = state;
   const [newPrompt, setNewPrompt] = useState('');
+  const [newUndesired, setNewUndesired] = useState('');
+  const [inputFocus, setInputFocus] = useState('newPrompt');
   const mainOnClick = useCallback(() => setActive(!active), [active, setActive])
 
   const updatePrompt = useCallback(() => {
     const promptInput = document.querySelector(promptInputCss);
+    const undesiredInputs = document.querySelectorAll(undesiredInputCss);
+    let undesiredInput = undefined;
 
-    promptInput.value = compilePrompt(basePrompt, topics);
+    undesiredInputs.forEach(i => {
+      const parent = i.parentElement;
+      if (parent.firstChild.textContent === 'Undesired Content')
+        undesiredInput = i;
+    });
+
+    const { promptText, undesiredText } = compilePrompt(basePrompt, topics);
+    promptInput.value = promptText;
     promptInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+    if (undesiredInput) {
+      undesiredInput.value = undesiredText;
+      undesiredInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
 
     const newTopics = topics.map(t => ({ ...t, open: undefined }));
     setStoredState({ ...state, topics: newTopics });
@@ -129,12 +154,18 @@ const App = () => {
 
   const updateState = (n) => setState({ ...state, ...n });
 
-  const inputRef = React.createRef();
-  const onNewPromptBlur = (topicIndex) => {
+  const onItemInputBlur = (topicIndex) => {
     if (isNullOrWhitespace(newPrompt)) return;
     topics[topicIndex].items.push({ prompt: newPrompt, level: 0 });
     updateState({ topics: topics });
     setNewPrompt('');
+  }
+
+  const onUndesiredInputBlur = (topicIndex) => {
+    if (isNullOrWhitespace(newUndesired)) return;
+    topics[topicIndex].undesired.push({ prompt: newUndesired, level: 0 });
+    updateState({ topics: topics });
+    setNewUndesired('');
   }
 
   return (
@@ -143,13 +174,13 @@ const App = () => {
       {active && <div className='app'>
         <input placeholder='Enter base prompt here' value={basePrompt} onChange={(e) => updateState({ basePrompt: e.target.value })} />
         <h3>Topics <button onClick={() => {
-          topics.push({ name: 'New Topic', items: [], open: true })
+          topics.push({ name: 'New Topic', items: [], undesired: [], open: true })
           updateState({ topics: topics })
         }}>+</button>
         </h3>
         <ul>
           {topics.map((topic, ti) => (
-            <li key={ti}>
+            <li key={'topic-' + ti}>
               <Topic
                 topic={topic}
                 onChange={(nTopic) => {
@@ -162,11 +193,13 @@ const App = () => {
                     updateState({ topics: topics })
                   }
                 }}>
+                <h5>Prompt Items:</h5>
                 <ul className='items'>
-                  {topic.items.map((item, ii) => (
-                    <li key={ii}>
+                  {topic.items?.map((item, ii) => (
+                    <li key={'promptItem-' + ii}>
                       <Item
                         item={item}
+                        allowNegativeLevel
                         onChange={(nItem) => {
                           topics[ti].items[ii] = nItem;
                           updateState({ topics: topics });
@@ -179,17 +212,56 @@ const App = () => {
                     </li>
                   ))}
                   <li>
-                    <input key={newPrompt} autoFocus ref={inputRef} placeholder={'Start typing...'} value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)} onBlur={() => onNewPromptBlur(ti)} onKeyDown={(e) => { if (e.key === 'Enter') onNewPromptBlur(ti); }} />
+                    <input
+                      key={'prompt-' + newPrompt}
+                      autoFocus={inputFocus === 'newPrompt'}
+                      placeholder={'New prompt...'}
+                      value={newPrompt}
+                      onChange={(e) => setNewPrompt(e.target.value)}
+                      onBlur={() => onItemInputBlur(ti)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') onItemInputBlur(ti); }}
+                      onFocus={() => setInputFocus('newPrompt')}
+                    />
+                  </li>
+                </ul>
+                <br />
+                <h5>Undesired Items:</h5>
+                <ul className='items'>
+                  {topic.undesired?.map((und, ui) => (
+                    <li key={'undesiredItem-' + ui}>
+                      <Item
+                        item={und}
+                        onChange={(nUnd) => {
+                          topics[ti].undesired[ui] = nUnd;
+                          updateState({ topics: topics });
+                        }}
+                        onDelete={() => {
+                          topics[ti].undesired.splice(ui, 1);
+                          updateState({ topics: topics })
+                        }}
+                      />
+                    </li>
+                  ))}
+                  <li>
+                    <input
+                      key={'undesired-' + newUndesired}
+                      autoFocus={inputFocus === 'newUndesired'}
+                      placeholder={'New undesired...'}
+                      value={newUndesired}
+                      onChange={(e) => setNewUndesired(e.target.value)}
+                      onBlur={() => onUndesiredInputBlur(ti)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') onUndesiredInputBlur(ti); }}
+                      onFocus={() => setInputFocus('newUndesired')}
+                    />
                   </li>
                 </ul>
               </Topic>
             </li>
           ))}
         </ul>
-        <br />
-        <button className='update' onClick={updatePrompt}>Update Prompt</button>
       </div>
       }
+      {active && <button className='update' onClick={updatePrompt}>Update Prompt</button>}
     </>
   )
 }
