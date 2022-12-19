@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const promptInputCss = '#prompt-input-0';
 
@@ -45,6 +45,8 @@ const useLocalStorage = (key, initialValue) => {
   return [storedValue, setValue];
 }
 
+const isNullOrWhitespace = (str) => str === undefined || str.trim() === '';
+
 const Topic = ({ topic, onChange, children, onDelete }) => {
   const { name, active, items, open } = topic;
   const change = useCallback((t) => {
@@ -56,10 +58,10 @@ const Topic = ({ topic, onChange, children, onDelete }) => {
         change({ ...topic, active: !active })
       } />
       <button onClick={() => change({ open: !open })}>{name}</button>
-      <button onClick={() => {
+      {/*<button onClick={() => {
         items.push({ prompt: '', level: 0 })
         change({ items: items })
-      }}>+ Item</button>
+      }}>+ Item</button>*/}
       <button onClick={() => onDelete()}>Delete</button>
       {open && <>
         <input value={name} onChange={(e) => change({ name: e.target.value })} />
@@ -79,7 +81,7 @@ const Item = ({ item, onChange, onDelete }) => {
   return (
     <div className='inline'>
       <button onClick={() => onDelete()}>x </button>
-      <input value={prompt} onChange={(e) => change({ prompt: e.target.value })} />
+      <input value={prompt} onChange={(e) => change({ prompt: e.target.value })} onBlur={() => { if (isNullOrWhitespace(prompt)) onDelete(); }} />
       <button onClick={() => change({ level: level - 1 })}>-</button>
       {space}{level}{space}
       <button onClick={() => change({ level: level + 1 })}>+</button>
@@ -115,6 +117,7 @@ const App = () => {
   const [active, setActive] = useState(true);
   const [state, setState] = useState(loadedState);
   const { basePrompt, topics } = state;
+  const [newPrompt, setNewPrompt] = useState('');
   const mainOnClick = useCallback(() => setActive(!active), [active, setActive])
 
   const updatePrompt = useCallback(() => {
@@ -130,6 +133,8 @@ const App = () => {
 
   const updateState = (n) => setState({ ...state, ...n });
 
+  const inputRef = React.createRef();
+
   return (
     <>
       <button onClick={mainOnClick}>Smart NAI {active ? '-' : '+'}</button>
@@ -142,7 +147,7 @@ const App = () => {
         </h3>
         <ul>
           {topics.map((topic, ti) => (
-            <li>
+            <li key={ti}>
               <Topic
                 topic={topic}
                 onChange={(nTopic) => {
@@ -157,7 +162,7 @@ const App = () => {
                 }}>
                 <ul className='items'>
                   {topic.items.map((item, ii) => (
-                    <li>
+                    <li key={ii}>
                       <Item
                         item={item}
                         onChange={(nItem) => {
@@ -171,6 +176,14 @@ const App = () => {
                       />
                     </li>
                   ))}
+                  <li>
+                    <input key={newPrompt} autoFocus ref={inputRef} placeholder={'Start typing...'} value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)} onBlur={() => {
+                      if (isNullOrWhitespace(newPrompt)) return;
+                      topics[ti].items.push({ prompt: newPrompt, level: 0 });
+                      updateState({ topics: topics });
+                      setNewPrompt('');
+                    }} />
+                  </li>
                 </ul>
               </Topic>
             </li>
